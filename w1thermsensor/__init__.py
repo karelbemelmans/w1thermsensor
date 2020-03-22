@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
-
 """
-    This module provides a temperature sensor of type w1 therm.
+This module provides a temperature sensor of type w1 therm.
 """
 
-from .__version__ import __version__  # noqa
+__version__ = "1.3.0"  # noqa
+
 from .core import W1ThermSensor  # noqa
 from .errors import NoSensorFoundError  # noqa
 from .errors import SensorNotReadyError  # noqa

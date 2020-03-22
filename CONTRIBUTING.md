@@ -28,7 +28,7 @@ To test the w1thermsensor source code against all supported python versions you 
 
 ```bash
 cd ~/work/w1thermsensor
-pip3 install tox
+pip install tox
 tox
 ```
 
@@ -38,11 +38,11 @@ However, if you want to test your code on certain circumstances you can create a
 cd ~/work/w1thermsensor
 virtualenv env -p python3
 source env/bin/activate
-python -m pip install -r requirements-dev.txt
-python -m pip install .
+python -m pip install -e '.[dev]'
 pytest tests/
 ```
 
 ## AUTHORS file
+
 Please feel free to open a Pull Request and add yourself to the `AUTHORS` file. <br>
 Well, ... only if you've done some considerable changes :beers:

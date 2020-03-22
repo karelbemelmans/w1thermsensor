@@ -1,78 +1,87 @@
-# -*- coding: utf-8 -*-
-
-import io
 import os
-import sys
-import codecs
-from shutil import rmtree
+import re
+import functools
+from pathlib import Path
 
-from setuptools import find_packages, setup, Command
+from setuptools import find_packages, setup
+
+#: Holds the configuration for the Python package
+PACKAGES = find_packages()
+META_FILE = Path("w1thermsensor").absolute() / "__init__.py"
+KEYWORDS = [
+    "w1",
+    "therm",
+    "DS1822",
+    "DS18S20",
+    "DS18B20",
+    "rpi",
+    "raspberry pi",
+    "beagle bone",
+    "linux",
+    "cli",
+    "api"
+]
+CLASSIFIERS = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.5",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: Implementation",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+#: Holds all requirements for the end user
+INSTALL_REQUIRES = ["click"]
+
+#: Holds all requirements for development and testing
+EXTRAS_REQUIRES = {
+    "tests": ["pytest", "pytest-mock", "coverage"]
+}
+EXTRAS_REQUIRES["dev"] = EXTRAS_REQUIRES["tests"] + ["flake8"]
 
 
 here = os.path.abspath(os.path.dirname(__file__))
 
-with codecs.open(os.path.join(here, "README.md"), encoding="utf-8") as f:
-    long_description = "\n" + f.read()
+with open("README.md", encoding="utf-8") as readme_file:
+    README_CONTENTS = readme_file.read()
 
 
-if sys.argv[-1] == "publish":
-    os.system("python setup.py sdist bdist_wheel upload")
-    sys.exit()
-
-required = ["click"]
-
-
-class UploadCommand(Command):
-    """Support setup.py upload."""
-
-    description = "Build and publish the package."
-    user_options = []
-
-    @staticmethod
-    def status(s):
-        """Prints things in bold."""
-        print("\033[1m{0}\033[0m".format(s))
-
-    def initialize_options(self):
-        pass
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        try:
-            self.status("Removing previous builds…")
-            rmtree(os.path.join(here, "dist"))
-        except OSError:
-            pass
-
-        self.status("Building Source and Wheel (universal) distribution…")
-        os.system("{0} setup.py sdist bdist_wheel --universal".format(sys.executable))
-
-        self.status("Uploading the package to PyPi via Twine…")
-        os.system("twine upload dist/*")
-
-        self.status("Pushing git tags…")
-        os.system("git tag v{0}".format(about["__version__"]))
-        os.system("git push --tags")
-
-        sys.exit()
+@functools.lru_cache()
+def read(metafile):
+    """
+    Return the contents of the given meta data file assuming UTF-8 encoding.
+    """
+    with open(str(metafile), encoding="utf-8") as f:
+        return f.read()
 
 
-# About dict to store version and package info
-about = dict()
-with codecs.open(
-    os.path.join(here, "w1thermsensor", "__version__.py"), "r", encoding="utf-8"
-) as f:
-    exec(f.read(), about)
+def get_meta(meta, metafile):
+    """
+    Extract __*meta*__ from the given metafile.
+    """
+    contents = read(metafile)
+    meta_match = re.search(
+        r"^__{meta}__ = ['\"]([^'\"]*)['\"]".format(meta=meta), contents, re.M
+    )
+    if meta_match:
+        return meta_match.group(1)
+    raise RuntimeError("Unable to find __{meta}__ string.".format(meta=meta))
 
 
-setup_args = dict(
+setup(
     name="w1thermsensor",
-    version=about["__version__"],
+    version=get_meta("version", META_FILE),
     license="MIT",
-    description="This little pure python module provides a single class to get the temperature of a w1 sensor",
-    long_description=long_description,
+    description=(
+        "A Python package and CLI tool to work with w1 temperature sensors like "
+        "DS1822, DS18S20 & DS18B20 on the Raspberry Pi, Beagle Bone and other devices."
+    ),
+    long_description=README_CONTENTS,
     long_description_content_type="text/markdown",
     author="Timo Furrer",
     author_email="tuxtimo@gmail.com",
@@ -81,31 +90,14 @@ setup_args = dict(
     platforms=["Linux"],
     url="http://github.com/timofurrer/w1thermsensor",
     download_url="http://github.com/timofurrer/w1thermsensor",
-    packages=find_packages(exclude=["*tests*"]),
-    install_requires=required,
+    packages=PACKAGES,
     include_package_data=True,
-    classifiers=(
-        "Development Status :: 5 - Production/Stable",
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: MIT License",
-        "Natural Language :: English",
-        "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.4",
-        "Programming Language :: Python :: 3.5",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: Implementation",
-        "Programming Language :: Python :: Implementation :: CPython",
-        "Topic :: Software Development :: Libraries :: Python Modules",
-    ),
-    cmdclass={"upload": UploadCommand},
-)
-
-if sys.version_info.major == 3:
-    setup_args["entry_points"] = {
+    install_requires=INSTALL_REQUIRES,
+    extras_require=EXTRAS_REQUIRES,
+    python_requires=">=3.5.*",
+    entry_points={
         "console_scripts": ["w1thermsensor = w1thermsensor.cli:cli"]
-    }
-
-setup(**setup_args)
+    },
+    keywords=KEYWORDS,
+    classifiers=CLASSIFIERS,
+)
